@@ -48,8 +48,8 @@ const STEALTHY_HEADERS = {
     "Sec-Ch-Ua-Platform": '"Windows"',
 };
 
-const REQUEST_DELAY_MS = 1200;
-const REQUEST_JITTER = 600;
+const REQUEST_DELAY_MS = 500;
+const REQUEST_JITTER = 300;
 const MAX_RETRIES = 5;
 const DEFAULT_PROPERTIES_PER_PAGE = 24;
 const DATASET_BATCH_SIZE = 15;
@@ -139,68 +139,91 @@ const buildSearchUrl = (input) => {
 // DATA EXTRACTION
 // ============================================================================
 
-const extractPropertyCard = ($, card) => {
+const extractPropertyCard = ($, cardOrLink) => {
     try {
-        let propertyLink = $(card).find('a[href*="/properties/"]').first();
-        if (!propertyLink.length) propertyLink = $(card).find('a[href*="propertyId"]').first();
+        // If it's a link, get the href directly
+        let propertyLink = $(cardOrLink);
+        if (!cardOrLink.tagName || cardOrLink.tagName !== 'A') {
+            // If it's a container, find the link inside
+            propertyLink = $(cardOrLink).find('a[href*="/properties/"]').first();
+        }
+
+        if (!propertyLink.length) return null;
+
         const propertyUrl = ensureAbsoluteUrl(propertyLink.attr("href"));
         const propertyId = extractPropertyId(propertyUrl);
         if (!propertyId || !propertyUrl) return null;
 
+        // Get parent container for extracting other info
+        const container = propertyLink.closest('div, article, section, li').length
+            ? propertyLink.closest('div, article, section, li')
+            : propertyLink.parent();
+
         let priceText = null;
         let price = null;
-        const priceSelectors = ['[class*="price"]', '[class*="Price"]', '[data-test*="price"]'];
+        const priceSelectors = ['[class*="price"]', '[class*="Price"]', '[data-test*="price"]', 'span', 'div'];
         for (const selector of priceSelectors) {
-            const el = $(card).find(selector).first();
-            if (!el.length) continue;
-            priceText = cleanText(el.text());
-            if (priceText && priceText.includes("£")) {
-                price = parsePrice(priceText);
-                break;
+            const el = container.find(selector).filter((_, e) => {
+                const text = $(e).text();
+                return text.includes('£');
+            }).first();
+            if (el.length) {
+                priceText = cleanText(el.text());
+                if (priceText && priceText.includes("£")) {
+                    price = parsePrice(priceText);
+                    break;
+                }
             }
         }
 
         let address = null;
-        const addressSelectors = ['[class*="address"]', '[class*="title"]', '[data-test*="address"]', "h2", "h3"];
+        const addressSelectors = ['[class*="address"]', '[class*="Address"]', '[class*="title"]', '[data-test*="address"]', 'h2', 'h3', 'span'];
         for (const selector of addressSelectors) {
-            const el = $(card).find(selector).first();
+            const el = container.find(selector).first();
             if (!el.length) continue;
             const text = cleanText(el.text());
-            if (text && text.length > 5) {
+            if (text && text.length > 5 && !text.includes('£') && !text.match(/^\d+$/)) {
                 address = text;
                 break;
             }
         }
-        if (!address) address = cleanText($(card).text().substring(0, 100));
+        if (!address) {
+            // Try getting from link text
+            const linkText = cleanText(propertyLink.text());
+            if (linkText && linkText.length > 5) {
+                address = linkText.substring(0, 100);
+            }
+        }
+        if (!address) address = "N/A";
 
-        const cardText = $(card).text();
+        const containerText = container.text();
         let bedrooms = null;
         let bathrooms = null;
-        const bedMatch = cardText.match(/(\d+)\s*(?:bed|bedroom)/i);
-        const bathMatch = cardText.match(/(\d+)\s*(?:bath|bathroom)/i);
+        const bedMatch = containerText.match(/(\d+)\s*(?:bed|bedroom)/i);
+        const bathMatch = containerText.match(/(\d+)\s*(?:bath|bathroom)/i);
         if (bedMatch) bedrooms = parseInt(bedMatch[1], 10);
         if (bathMatch) bathrooms = parseInt(bathMatch[1], 10);
 
         let image = null;
-        const imgSelectors = ["img", '[class*="image"]'];
+        const imgSelectors = ["img", '[class*="image"]', '[class*="Image"]'];
         for (const selector of imgSelectors) {
-            const imgEl = $(card).find(selector).first();
+            const imgEl = container.find(selector).first();
             if (!imgEl.length) continue;
             image = imgEl.attr("src") || imgEl.attr("data-src") || imgEl.attr("data-lazy");
             if (image) break;
         }
 
         let agent = null;
-        const agentSelectors = ['[class*="agent"]', '[class*="developer"]'];
+        const agentSelectors = ['[class*="agent"]', '[class*="Agent"]', '[class*="developer"]', '[class*="branch"]'];
         for (const selector of agentSelectors) {
-            const el = $(card).find(selector).first();
+            const el = container.find(selector).first();
             if (!el.length) continue;
             agent = cleanText(el.text());
             if (agent && agent.length > 2) break;
         }
 
         const features = [];
-        $(card)
+        container
             .find('[class*="feature"], [class*="tag"], [class*="badge"]')
             .each((_, el) => {
                 const feature = cleanText($(el).text());
@@ -318,6 +341,7 @@ try {
     log.info(`  Config: ${maxResults} results, ${maxPages} pages, Details: ${collectDetails}`);
 
     let propertiesScraped = 0;
+    let propertiesQueued = 0;
     const propertyUrls = new Set();
     const propertyDataBatch = [];
     let currentPage = 1;
@@ -330,7 +354,7 @@ try {
         proxyConfiguration: proxyConfig,
         requestHandlerTimeoutSecs: TIMEOUT_SECONDS,
         maxRequestRetries: MAX_RETRIES,
-        maxConcurrency: 3,
+        maxConcurrency: 5,
         useSessionPool: true,
 
         async requestHandler({ request, $, body, response }) {
@@ -352,26 +376,48 @@ try {
                     return;
                 }
 
-                let propertyCards = $('[class*="property-card"], [data-test="property-card"]').toArray();
-                if (!propertyCards.length) {
-                    propertyCards = $('a[href*="/properties/"]').closest("article, section, li, div[class*='card']").toArray();
+                let propertyCards = [];
+
+                // Try multiple patterns to find property containers
+                const possibleSelectors = [
+                    'a[href*="/properties/"]',  // All property links
+                    'div[id^="property-"]',      // Property divs with IDs
+                    'article',                    // Article elements
+                    'div.l-searchResult'         // Search result containers
+                ];
+
+                for (const selector of possibleSelectors) {
+                    propertyCards = $(selector).toArray();
+                    if (propertyCards.length >= 10) break;  // Found substantial results
                 }
+
+                // Filter to only property links that lead to detail pages
+                if (propertyCards.length === 0 || !propertyCards[0] || propertyCards[0].tagName !== 'A') {
+                    propertyCards = $('a[href*="/properties/"]')
+                        .filter((_, el) => {
+                            const href = $(el).attr('href');
+                            return href && /\/properties\/\d+/.test(href);
+                        })
+                        .toArray();
+                }
+
                 log.info(`  Found ${propertyCards.length} property containers`);
 
                 const properties = [];
                 for (const card of propertyCards) {
-                    if (propertiesScraped >= maxResults) break;
+                    if (propertiesQueued >= maxResults) break;
                     const property = extractPropertyCard($, card);
                     if (property && !propertyUrls.has(property.url)) {
                         propertyUrls.add(property.url);
                         properties.push(property);
+                        propertiesQueued += 1;
                     }
                 }
-                log.info(`  Extracted ${properties.length} properties`);
+                log.info(`  Extracted ${properties.length} new properties (${propertiesQueued}/${maxResults} total queued)`);
 
                 if (collectDetails) {
                     for (const property of properties) {
-                        if (propertiesScraped >= maxResults) break;
+                        if (propertiesQueued > maxResults) break;
                         await crawler.addRequests([
                             {
                                 url: property.url,
@@ -379,7 +425,7 @@ try {
                                 headers: { ...STEALTHY_HEADERS, "User-Agent": getRandomUserAgent() },
                             },
                         ]);
-                        propertiesScraped += 1;
+                        // Counter already incremented above when property was added to properties array
                     }
                 } else {
                     for (const property of properties) {
@@ -397,7 +443,7 @@ try {
                     }
                 }
 
-                if (propertiesScraped < maxResults && currentPage < maxPages) {
+                if (propertiesQueued < maxResults && currentPage < maxPages) {
                     let nextUrl = null;
                     const nextArrow = $("span.dsrm_button__icon.dsrm_button__icon--right").closest("a,button");
                     const nextHref = nextArrow.attr("href") || nextArrow.attr("data-url");
@@ -454,7 +500,7 @@ try {
     if (propertyDataBatch.length > 0) await Dataset.pushData(propertyDataBatch);
 
     log.info("✓ Completed!");
-    log.info(`  Properties: ${propertiesScraped}, Unique: ${propertyUrls.size}, Pages: ${currentPage}`);
+    log.info(`  Properties Scraped: ${propertiesScraped}, Queued: ${propertiesQueued}, Unique: ${propertyUrls.size}, Pages: ${currentPage}`);
 
     await Actor.setValue("OUTPUT", {
         status: "success",
