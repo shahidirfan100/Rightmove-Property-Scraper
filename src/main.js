@@ -7,7 +7,7 @@ import { load as cheerioLoad } from "cheerio";
 // ============================================================================
 
 const BASE_URL = "https://www.rightmove.co.uk";
-const DEFAULT_SEARCH_URL = `${BASE_URL}/new-homes-for-sale/find.html`;
+const DEFAULT_SEARCH_URL = `${BASE_URL}/property-for-sale/find.html`;
 
 const UK_REGIONS = {
     london: "REGION^87490",
@@ -165,7 +165,7 @@ const buildSearchUrl = (input) => {
     params.append("radius", input.radius || "0.0");
     if (input.minPrice) params.append("minPrice", input.minPrice);
     if (input.maxPrice) params.append("maxPrice", input.maxPrice);
-    params.append("channel", "NEW_HOME");
+    // Don't add channel parameter - search all property types
     return `${DEFAULT_SEARCH_URL}?${params.toString()}`;
 };
 

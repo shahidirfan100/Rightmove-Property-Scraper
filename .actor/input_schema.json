@@ -1,6 +1,6 @@
 {
   "title": "Rightmove Property Scraper",
-  "description": "Extract UK property listings from Rightmove with comprehensive details including prices, descriptions, images, agent information, and property features",
+  "description": "Extract UK property listings from Rightmove with comprehensive details including prices, descriptions, images, agent information, and property features. Searches all property types.",
   "type": "object",
   "schemaVersion": 1,
   "properties": {
@@ -9,8 +9,8 @@
       "type": "string",
       "description": "Rightmove property search URL. Leave empty to use search parameters below.",
       "editor": "textfield",
-      "example": "https://www.rightmove.co.uk/new-homes-for-sale/find.html?searchLocation=London&locationIdentifier=REGION%5E87490",
-      "prefill": "https://www.rightmove.co.uk/new-homes-for-sale/find.html?searchLocation=London&locationIdentifier=REGION%5E87490&radius=0.0&_includeSSTC=on"
+      "example": "https://www.rightmove.co.uk/property-for-sale/find.html?searchLocation=London&locationIdentifier=REGION%5E87490",
+      "prefill": "https://www.rightmove.co.uk/property-for-sale/find.html?searchLocation=London&locationIdentifier=REGION%5E87490&radius=0.0"
     },
     "searchLocation": {
       "title": "Search Location",
