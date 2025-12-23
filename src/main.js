@@ -141,16 +141,23 @@ const buildSearchUrl = (input) => {
 
 const extractPropertyCard = ($, cardOrLink) => {
     try {
-        // If it's a link, get the href directly
+        // Wrap in Cheerio if not already
         let propertyLink = $(cardOrLink);
-        if (!cardOrLink.tagName || cardOrLink.tagName !== 'A') {
+
+        // Check if it's an anchor tag by getting the tag name
+        const tagName = propertyLink.prop('tagName');
+
+        if (!tagName || tagName.toLowerCase() !== 'a') {
             // If it's a container, find the link inside
-            propertyLink = $(cardOrLink).find('a[href*="/properties/"]').first();
+            propertyLink = propertyLink.find('a[href*="/properties/"]').first();
         }
 
         if (!propertyLink.length) return null;
 
-        const propertyUrl = ensureAbsoluteUrl(propertyLink.attr("href"));
+        const href = propertyLink.attr("href");
+        if (!href) return null;
+
+        const propertyUrl = ensureAbsoluteUrl(href);
         const propertyId = extractPropertyId(propertyUrl);
         if (!propertyId || !propertyUrl) return null;
 
