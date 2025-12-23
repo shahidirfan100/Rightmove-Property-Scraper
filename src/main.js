@@ -13,7 +13,7 @@ const UK_REGIONS = {
     london: "REGION^87490",
     manchester: "REGION^904",
     birmingham: "REGION^60",
-    leeds: "REGION^1466",
+    leeds: "REGION^787",        // Corrected - verified working
     liverpool: "REGION^1520",
     bristol: "REGION^239",
     edinburgh: "REGION^339",
@@ -143,7 +143,7 @@ const buildSearchUrl = (input) => {
         params.append("locationIdentifier", input.locationIdentifier);
         params.append("useLocationIdentifier", "true");
     } else if (input.searchLocation) {
-        // Try to match searchLocation to UK_REGIONS
+        // Try to map searchLocation to UK_REGIONS
         const locationKey = input.searchLocation.toLowerCase().trim();
         const regionId = UK_REGIONS[locationKey];
 
@@ -152,12 +152,12 @@ const buildSearchUrl = (input) => {
             params.append("locationIdentifier", regionId);
             params.append("useLocationIdentifier", "true");
         } else {
-            // Use freetext search
-            params.append("searchLocation", input.searchLocation);
-            params.append("useLocationIdentifier", "false");
+            // For unrecognized locations, try as-is (might be postcode/custom identifier)
+            params.append("locationIdentifier", input.searchLocation);
+            params.append("useLocationIdentifier", "true");
         }
     } else {
-        // Default to London only if no location provided at all
+        // Default to London
         params.append("locationIdentifier", UK_REGIONS.london);
         params.append("useLocationIdentifier", "true");
     }
@@ -465,13 +465,7 @@ try {
     } else if (locationIdentifier) {
         log.info(`  Search Method: Location Identifier (${locationIdentifier})`);
     } else if (searchLocation) {
-        const locationKey = searchLocation.toLowerCase().trim();
-        const regionId = UK_REGIONS[locationKey];
-        if (regionId) {
-            log.info(`  Search Method: Location "${searchLocation}" → Region ID`);
-        } else {
-            log.info(`  Search Method: Freetext Location "${searchLocation}"`);
-        }
+        log.info(`  Search Method: Freetext Location "${searchLocation}"`);
     } else {
         log.info(`  Search Method: Default (London)`);
     }
@@ -551,6 +545,13 @@ try {
                     }
                 }
                 log.info(`  Extracted ${properties.length} new properties (${propertiesQueued}/${maxResults} total queued)`);
+
+                // Warn if no properties found
+                if (properties.length === 0 && propertyCards.length > 0) {
+                    log.warning(`  ⚠ Found ${propertyCards.length} containers but extracted 0 properties - check selectors`);
+                } else if (properties.length === 0 && propertyCards.length === 0) {
+                    log.warning(`  ⚠ No properties found - location may have no new homes available`);
+                }
 
                 if (collectDetails) {
                     for (const property of properties) {
