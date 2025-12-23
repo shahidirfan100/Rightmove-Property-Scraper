@@ -273,13 +273,51 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
                 const offer = Array.isArray(propertyJsonLd.offers) ? propertyJsonLd.offers[0] : propertyJsonLd.offers;
                 propertyData.price = { amount: offer?.price, currency: offer?.priceCurrency };
             }
+            // Extract bedrooms/bathrooms from JSON-LD if available
+            if (propertyJsonLd.numberOfRooms) propertyData.bedrooms = parseInt(propertyJsonLd.numberOfRooms, 10);
+            if (propertyJsonLd.numberOfBedrooms) propertyData.bedrooms = parseInt(propertyJsonLd.numberOfBedrooms, 10);
+            if (propertyJsonLd.numberOfBathroomsTotal) propertyData.bathrooms = parseInt(propertyJsonLd.numberOfBathroomsTotal, 10);
         }
 
         const title = propertyData.title || cleanText($("h1").first().text());
         const description = propertyData.description || cleanText($('[class*="description"]').text());
 
+        // Extract bedrooms and bathrooms from page text if not already found
+        const pageText = $.text();
+        if (!propertyData.bedrooms) {
+            const bedMatch = pageText.match(/(\d+)\s*(?:bed|bedroom|Bed|Bedroom)/i);
+            if (bedMatch) propertyData.bedrooms = parseInt(bedMatch[1], 10);
+        }
+        if (!propertyData.bathrooms) {
+            const bathMatch = pageText.match(/(\d+)\s*(?:bath|bathroom|Bath|Bathroom)/i);
+            if (bathMatch) propertyData.bathrooms = parseInt(bathMatch[1], 10);
+        }
+
+        // Extract agent/developer information
+        if (!propertyData.agent || propertyData.agent.length < 3) {
+            const agentSelectors = [
+                '[class*="agent-name"]',
+                '[class*="branch-name"]',
+                '[class*="developer"]',
+                '[class*="marketed-by"]',
+                '[data-test*="agent"]',
+                '[class*="agent"] h2',
+                '[class*="agent"] h3'
+            ];
+            for (const selector of agentSelectors) {
+                const agentEl = $(selector).first();
+                if (agentEl.length) {
+                    const agentText = cleanText(agentEl.text());
+                    if (agentText && agentText.length > 2 && agentText.length < 100) {
+                        propertyData.agent = agentText;
+                        break;
+                    }
+                }
+            }
+        }
+
         const keyFeatures = [];
-        $('[class*="key-feature"] li, [class*="bullet"] li').each((_, el) => {
+        $('[class*="key-feature"] li, [class*="bullet"] li, [class*="feature"] li').each((_, el) => {
             const feature = cleanText($(el).text());
             if (feature && feature.length > 2) keyFeatures.push(feature);
         });
@@ -291,16 +329,25 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
             if (key && value) details[key] = value;
         });
 
+        // Try alternative detail extraction patterns
+        if (Object.keys(details).length === 0) {
+            $('[class*="details"] dt, [class*="info"] dt').each((_, dt) => {
+                const key = cleanText($(dt).text());
+                const value = cleanText($(dt).next().text());
+                if (key && value) details[key] = value;
+            });
+        }
+
         if (!propertyData.images) {
             propertyData.images = [];
-            $('[class*="gallery"] img, [data-test*="image"] img').each((_, el) => {
+            $('[class*="gallery"] img, [data-test*="image"] img, [class*="carousel"] img, img[src*="crop"]').each((_, el) => {
                 const src = $(el).attr("src") || $(el).attr("data-src");
                 if (src && !propertyData.images.includes(src)) propertyData.images.push(ensureAbsoluteUrl(src));
             });
         }
 
         const floorplans = [];
-        $('[class*="floorplan"] img').each((_, el) => {
+        $('[class*="floorplan"] img, [class*="floor-plan"] img').each((_, el) => {
             const src = $(el).attr("src") || $(el).attr("data-src");
             if (src) floorplans.push(ensureAbsoluteUrl(src));
         });
@@ -368,7 +415,6 @@ try {
             const { url, userData } = request;
             try {
                 request.headers = { ...request.headers, ...STEALTHY_HEADERS, "User-Agent": getRandomUserAgent() };
-                log.info(`[${response?.statusCode || "OK"}] ${url.substring(0, 80)}...`);
 
                 if (userData?.isPropertyDetail) {
                     const propertyDetails = extractPropertyDetails($, body, userData.basicInfo);
@@ -408,7 +454,7 @@ try {
                         .toArray();
                 }
 
-                log.info(`  Found ${propertyCards.length} property containers`);
+
 
                 const properties = [];
                 for (const card of propertyCards) {
@@ -470,7 +516,6 @@ try {
 
                     if (nextUrl) {
                         currentPage += 1;
-                        log.info(`  Queuing page ${currentPage}`);
                         await crawler.addRequests([
                             {
                                 url: nextUrl,
