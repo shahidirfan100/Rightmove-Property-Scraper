@@ -71,6 +71,21 @@ const cleanText = (text) => {
     return cleaned.length > 0 ? cleaned : null;
 };
 
+const cleanDescription = (text) => {
+    if (!text) return null;
+
+    // Remove excessive whitespace but preserve paragraph structure
+    let cleaned = text
+        .replace(/\r\n/g, '\n')           // Normalize line breaks
+        .replace(/\n{3,}/g, '\n\n')       // Max 2 consecutive newlines (paragraph break)
+        .replace(/[ \t]+/g, ' ')          // Replace multiple spaces/tabs with single space
+        .replace(/\n /g, '\n')            // Remove spaces at start of lines
+        .replace(/ \n/g, '\n')            // Remove spaces at end of lines
+        .trim();
+
+    return cleaned.length > 0 ? cleaned : null;
+};
+
 const ensureAbsoluteUrl = (url) => {
     if (!url) return null;
     if (url.startsWith("http")) return url;
@@ -285,11 +300,11 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
         let description = propertyData.description;
         if (!description) {
             // Primary selector: exact Rightmove class
-            description = cleanText($('div.OD0O7FWw1TjbTD4sdRi1_').text());
+            description = cleanDescription($('div.OD0O7FWw1TjbTD4sdRi1_').text());
         }
         if (!description) {
             // Fallback selectors
-            description = cleanText($('[class*="description"]').text()) || cleanText($('[data-test*="description"]').text());
+            description = cleanDescription($('[class*="description"]').text()) || cleanDescription($('[data-test*="description"]').text());
         }
 
         // Extract bedrooms and bathrooms from page text if not already found
