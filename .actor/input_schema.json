@@ -74,50 +74,6 @@
       "editor": "number",
       "example": 1000000
     },
-    "minBedrooms": {
-      "title": "Minimum Bedrooms",
-      "type": "integer",
-      "description": "Minimum number of bedrooms",
-      "editor": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "example": 2
-    },
-    "maxBedrooms": {
-      "title": "Maximum Bedrooms",
-      "type": "integer",
-      "description": "Maximum number of bedrooms",
-      "editor": "number",
-      "minimum": 0,
-      "maximum": 10,
-      "example": 5
-    },
-    "propertyTypes": {
-      "title": "Property Types",
-      "type": "array",
-      "description": "Filter by property types",
-      "editor": "select",
-      "items": {
-        "type": "string",
-        "enum": [
-          "detached",
-          "semi-detached",
-          "terraced",
-          "flat",
-          "bungalow",
-          "land",
-          "park-home"
-        ]
-      },
-      "uniqueItems": true
-    },
-    "includeSSTC": {
-      "title": "Include SSTC Properties",
-      "type": "boolean",
-      "description": "Include properties marked as 'Sold Subject To Contract'",
-      "editor": "checkbox",
-      "default": true
-    },
     "collectDetails": {
       "title": "Collect Full Property Details",
       "type": "boolean",

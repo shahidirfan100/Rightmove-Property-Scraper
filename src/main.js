@@ -175,18 +175,6 @@ const buildSearchUrl = (input) => {
     
     if (input.minPrice) params.append('minPrice', input.minPrice);
     if (input.maxPrice) params.append('maxPrice', input.maxPrice);
-    if (input.minBedrooms) params.append('minBedrooms', input.minBedrooms);
-    if (input.maxBedrooms) params.append('maxBedrooms', input.maxBedrooms);
-    
-    if (input.propertyTypes && input.propertyTypes.length > 0) {
-        input.propertyTypes.forEach(type => {
-            params.append('propertyTypes', type);
-        });
-    }
-    
-    if (input.includeSSTC) {
-        params.append('_includeSSTC', 'on');
-    }
     
     params.append('channel', 'NEW_HOME');
     
@@ -407,10 +395,6 @@ try {
         radius = '0.0',
         minPrice = null,
         maxPrice = null,
-        minBedrooms = null,
-        maxBedrooms = null,
-        propertyTypes = [],
-        includeSSTC = true,
         collectDetails = true,
         maxResults = 100,
         maxPages = 5,
@@ -425,10 +409,6 @@ try {
         radius,
         minPrice,
         maxPrice,
-        minBedrooms,
-        maxBedrooms,
-        propertyTypes,
-        includeSSTC,
     });
     
     log.info(`✓ Starting Rightmove Property Scraper`);
