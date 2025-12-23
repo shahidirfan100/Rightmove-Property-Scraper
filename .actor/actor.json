@@ -12,5 +12,8 @@
   "storages": {
     "dataset": "./dataset_schema.json"
   },
-  "categories": ["REAL_ESTATE"]
+  "categories": ["REAL_ESTATE"],
+  "meta": {
+    "generatedBy": "GPT-5"
+  }
 }
