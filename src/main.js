@@ -83,6 +83,11 @@ const cleanDescription = (text) => {
         .replace(/ \n/g, '\n')            // Remove spaces at end of lines
         .trim();
 
+    // Remove "Description" heading if it appears at the start
+    if (cleaned.match(/^Description[:\s]*/i)) {
+        cleaned = cleaned.replace(/^Description[:\s]*/i, '').trim();
+    }
+
     return cleaned.length > 0 ? cleaned : null;
 };
 
@@ -133,16 +138,30 @@ const extractJsonLd = (html) => {
 const buildSearchUrl = (input) => {
     if (input.startUrl) return input.startUrl;
     const params = new URLSearchParams();
+
     if (input.locationIdentifier) {
         params.append("locationIdentifier", input.locationIdentifier);
         params.append("useLocationIdentifier", "true");
     } else if (input.searchLocation) {
-        params.append("searchLocation", input.searchLocation);
-        params.append("useLocationIdentifier", "false");
+        // Try to match searchLocation to UK_REGIONS
+        const locationKey = input.searchLocation.toLowerCase().trim();
+        const regionId = UK_REGIONS[locationKey];
+
+        if (regionId) {
+            // Found matching region, use locationIdentifier
+            params.append("locationIdentifier", regionId);
+            params.append("useLocationIdentifier", "true");
+        } else {
+            // Use freetext search
+            params.append("searchLocation", input.searchLocation);
+            params.append("useLocationIdentifier", "false");
+        }
     } else {
+        // Default to London only if no location provided at all
         params.append("locationIdentifier", UK_REGIONS.london);
         params.append("useLocationIdentifier", "true");
     }
+
     params.append("radius", input.radius || "0.0");
     if (input.minPrice) params.append("minPrice", input.minPrice);
     if (input.maxPrice) params.append("maxPrice", input.maxPrice);
@@ -427,8 +446,8 @@ await Actor.init();
 try {
     const input = (await Actor.getInput()) || {};
     const {
-        searchLocation = "London",
-        locationIdentifier = UK_REGIONS.london,
+        searchLocation = null,
+        locationIdentifier = null,
         radius = "0.0",
         minPrice = null,
         maxPrice = null,
@@ -441,6 +460,21 @@ try {
     const searchUrl = buildSearchUrl({ startUrl, searchLocation, locationIdentifier, radius, minPrice, maxPrice });
 
     log.info("✓ Starting Rightmove Property Scraper");
+    if (startUrl) {
+        log.info(`  Search Method: Direct URL`);
+    } else if (locationIdentifier) {
+        log.info(`  Search Method: Location Identifier (${locationIdentifier})`);
+    } else if (searchLocation) {
+        const locationKey = searchLocation.toLowerCase().trim();
+        const regionId = UK_REGIONS[locationKey];
+        if (regionId) {
+            log.info(`  Search Method: Location "${searchLocation}" → Region ID`);
+        } else {
+            log.info(`  Search Method: Freetext Location "${searchLocation}"`);
+        }
+    } else {
+        log.info(`  Search Method: Default (London)`);
+    }
     log.info(`  Search URL: ${searchUrl}`);
     log.info(`  Config: ${maxResults} results, ${maxPages} pages, Details: ${collectDetails}`);
 
