@@ -999,7 +999,6 @@ const isBlockedResponse = (response, body) => {
         text.includes('access denied') ||
         text.includes('captcha') ||
         text.includes('robot') ||
-        text.includes('blocked') ||
         text.includes('incapsula')
     );
 };
@@ -1061,10 +1060,16 @@ try {
         useSessionPool: true,
         persistCookiesPerSession: true,
         preNavigationHooks: [
-            async ({ session }, gotOptions) => {
-                gotOptions.headers = { ...buildHeaders(session), ...gotOptions.headers };
+            async ({ session, request }, gotOptions) => {
+                // Rotate UA per request to reduce fingerprinting
+                gotOptions.headers = { ...buildHeaders(session), ...gotOptions.headers, 'User-Agent': getRandomUserAgent() };
                 gotOptions.timeout = { request: TIMEOUT_SECONDS * 1000 };
                 gotOptions.retry = { limit: 0 };
+
+                // Stagger start for first-page fetches
+                if ((request.userData?.label || '') === 'LIST' && request.userData.pageNumber === 1 && request.retryCount === 0) {
+                    await sleep(500 + Math.random() * 800);
+                }
             },
         ],
 
@@ -1074,8 +1079,10 @@ try {
 
             if (isBlockedResponse(response, bodyText)) {
                 session?.retire();
-                const backoff = getBackoffMs(request.retryCount);
-                log.warning(`Blocked response for ${url}. Retrying in ${backoff}ms.`);
+                const backoff = getBackoffMs(request.retryCount + 1);
+                log.warning(
+                    `Blocked response for ${url} (status: ${response?.statusCode || 'n/a'}). Retrying in ${backoff}ms with new session + UA.`
+                );
                 await sleep(backoff);
                 throw new Error('Blocked response');
             }
@@ -1205,8 +1212,8 @@ try {
             await sleep(backoff);
         },
 
-        failedRequestHandler: async ({ request }) => {
-            log.error(`Failed after retries: ${request.url}`);
+        failedRequestHandler: async ({ request, error }) => {
+            log.error(`Failed after retries: ${request.url} (${error?.message || 'unknown error'})`);
         },
     });
 
