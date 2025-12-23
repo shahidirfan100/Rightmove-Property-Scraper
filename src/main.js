@@ -280,7 +280,17 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
         }
 
         const title = propertyData.title || cleanText($("h1").first().text());
-        const description = propertyData.description || cleanText($('[class*="description"]').text());
+
+        // Extract description using exact Rightmove selector
+        let description = propertyData.description;
+        if (!description) {
+            // Primary selector: exact Rightmove class
+            description = cleanText($('div.OD0O7FWw1TjbTD4sdRi1_').text());
+        }
+        if (!description) {
+            // Fallback selectors
+            description = cleanText($('[class*="description"]').text()) || cleanText($('[data-test*="description"]').text());
+        }
 
         // Extract bedrooms and bathrooms from page text if not already found
         const pageText = $.text();
@@ -316,11 +326,36 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
             }
         }
 
+        // Extract key features using exact Rightmove selector
         const keyFeatures = [];
-        $('[class*="key-feature"] li, [class*="bullet"] li, [class*="feature"] li').each((_, el) => {
+
+        // Primary selector: exact Rightmove class
+        $('ul._1uI3IvdF5sIuBtRIvKrreQ li').each((_, el) => {
             const feature = cleanText($(el).text());
             if (feature && feature.length > 2) keyFeatures.push(feature);
         });
+
+        // Fallback selectors if primary didn't find features
+        if (keyFeatures.length === 0) {
+            $('[class*="key-feature"] li, [class*="bullet"] li, [class*="feature"] li').each((_, el) => {
+                const feature = cleanText($(el).text());
+                if (feature && feature.length > 2) keyFeatures.push(feature);
+            });
+        }
+
+        // Extract property type using exact Rightmove selector
+        if (!propertyData.propertyType) {
+            // Primary selector: exact Rightmove class
+            const propertyTypeEl = $('p._1hV1kqpVceE9m-QrX_hWDN').first();
+            if (propertyTypeEl.length) {
+                propertyData.propertyType = cleanText(propertyTypeEl.text());
+            }
+
+            // Fallback: check in details or page text
+            if (!propertyData.propertyType && details['Property Type']) {
+                propertyData.propertyType = details['Property Type'];
+            }
+        }
 
         const details = {};
         $('[class*="property-detail"] dt').each((_, dt) => {
