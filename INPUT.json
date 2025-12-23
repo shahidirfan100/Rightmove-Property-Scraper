@@ -1,0 +1,18 @@
+{
+  "startUrl": "https://www.rightmove.co.uk/new-homes-for-sale/find.html?searchLocation=London&useLocationIdentifier=true&locationIdentifier=REGION%5E87490&radius=0.0&_includeSSTC=on",
+  "searchLocation": "London",
+  "locationIdentifier": "REGION^87490",
+  "radius": "0.0",
+  "minPrice": null,
+  "maxPrice": null,
+  "minBedrooms": null,
+  "maxBedrooms": null,
+  "propertyTypes": [],
+  "includeSSTC": true,
+  "collectDetails": true,
+  "maxResults": 50,
+  "maxPages": 5,
+  "proxyConfiguration": {
+    "useApifyProxy": true
+  }
+}

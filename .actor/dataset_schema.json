@@ -1,0 +1,150 @@
+{
+  "actorSpecification": 1,
+  "fields": {},
+  "views": {
+    "overview": {
+      "title": "Overview",
+      "transformation": {
+        "fields": [
+          "propertyId",
+          "address",
+          "price",
+          "bedrooms",
+          "bathrooms",
+          "propertyType",
+          "agent",
+          "url"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "propertyId": {
+            "label": "Property ID",
+            "format": "text"
+          },
+          "address": {
+            "label": "Address",
+            "format": "text"
+          },
+          "price": {
+            "label": "Price",
+            "format": "object"
+          },
+          "bedrooms": {
+            "label": "Bedrooms",
+            "format": "number"
+          },
+          "bathrooms": {
+            "label": "Bathrooms",
+            "format": "number"
+          },
+          "propertyType": {
+            "label": "Property Type",
+            "format": "text"
+          },
+          "agent": {
+            "label": "Agent/Developer",
+            "format": "text"
+          },
+          "url": {
+            "label": "Property URL",
+            "format": "link"
+          }
+        }
+      }
+    },
+    "detailed": {
+      "title": "Detailed View",
+      "transformation": {
+        "fields": [
+          "propertyId",
+          "title",
+          "address",
+          "price",
+          "bedrooms",
+          "bathrooms",
+          "propertyType",
+          "description",
+          "keyFeatures",
+          "agent",
+          "tenure",
+          "councilTaxBand",
+          "addedDate",
+          "url",
+          "images",
+          "floorplan"
+        ]
+      },
+      "display": {
+        "component": "table",
+        "properties": {
+          "propertyId": {
+            "label": "Property ID",
+            "format": "text"
+          },
+          "title": {
+            "label": "Title",
+            "format": "text"
+          },
+          "address": {
+            "label": "Address",
+            "format": "text"
+          },
+          "price": {
+            "label": "Price",
+            "format": "object"
+          },
+          "bedrooms": {
+            "label": "Bedrooms",
+            "format": "number"
+          },
+          "bathrooms": {
+            "label": "Bathrooms",
+            "format": "number"
+          },
+          "propertyType": {
+            "label": "Type",
+            "format": "text"
+          },
+          "description": {
+            "label": "Description",
+            "format": "text"
+          },
+          "keyFeatures": {
+            "label": "Key Features",
+            "format": "array"
+          },
+          "agent": {
+            "label": "Agent",
+            "format": "object"
+          },
+          "tenure": {
+            "label": "Tenure",
+            "format": "text"
+          },
+          "councilTaxBand": {
+            "label": "Council Tax",
+            "format": "text"
+          },
+          "addedDate": {
+            "label": "Added Date",
+            "format": "text"
+          },
+          "url": {
+            "label": "URL",
+            "format": "link"
+          },
+          "images": {
+            "label": "Images",
+            "format": "array"
+          },
+          "floorplan": {
+            "label": "Floorplan",
+            "format": "link"
+          }
+        }
+      }
+    }
+  }
+}

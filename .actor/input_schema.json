@@ -1,0 +1,157 @@
+{
+  "title": "Rightmove Property Scraper",
+  "description": "Extract UK property listings from Rightmove with comprehensive details including prices, descriptions, images, agent information, and property features",
+  "type": "object",
+  "schemaVersion": 1,
+  "properties": {
+    "startUrl": {
+      "title": "Search URL",
+      "type": "string",
+      "description": "Rightmove property search URL. Leave empty to use search parameters below.",
+      "editor": "textfield",
+      "example": "https://www.rightmove.co.uk/new-homes-for-sale/find.html?searchLocation=London&locationIdentifier=REGION%5E87490",
+      "prefill": "https://www.rightmove.co.uk/new-homes-for-sale/find.html?searchLocation=London&locationIdentifier=REGION%5E87490&radius=0.0&_includeSSTC=on"
+    },
+    "searchLocation": {
+      "title": "Search Location",
+      "type": "string",
+      "description": "Location name to search for properties (e.g., 'London', 'Manchester', 'Birmingham')",
+      "editor": "textfield",
+      "example": "London",
+      "default": "London"
+    },
+    "locationIdentifier": {
+      "title": "Location Identifier",
+      "type": "string",
+      "description": "Rightmove location identifier (e.g., REGION^87490 for London). Leave empty to search by location name.",
+      "editor": "textfield",
+      "example": "REGION^87490"
+    },
+    "radius": {
+      "title": "Search Radius",
+      "type": "string",
+      "description": "Search radius from location in miles",
+      "editor": "select",
+      "enum": [
+        "0.0",
+        "0.25",
+        "0.5",
+        "1.0",
+        "3.0",
+        "5.0",
+        "10.0",
+        "15.0",
+        "20.0",
+        "30.0",
+        "40.0"
+      ],
+      "enumTitles": [
+        "This area only",
+        "Within 1/4 mile",
+        "Within 1/2 mile",
+        "Within 1 mile",
+        "Within 3 miles",
+        "Within 5 miles",
+        "Within 10 miles",
+        "Within 15 miles",
+        "Within 20 miles",
+        "Within 30 miles",
+        "Within 40 miles"
+      ],
+      "default": "0.0"
+    },
+    "minPrice": {
+      "title": "Minimum Price (£)",
+      "type": "integer",
+      "description": "Minimum property price in GBP",
+      "editor": "number",
+      "example": 200000
+    },
+    "maxPrice": {
+      "title": "Maximum Price (£)",
+      "type": "integer",
+      "description": "Maximum property price in GBP",
+      "editor": "number",
+      "example": 1000000
+    },
+    "minBedrooms": {
+      "title": "Minimum Bedrooms",
+      "type": "integer",
+      "description": "Minimum number of bedrooms",
+      "editor": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "example": 2
+    },
+    "maxBedrooms": {
+      "title": "Maximum Bedrooms",
+      "type": "integer",
+      "description": "Maximum number of bedrooms",
+      "editor": "number",
+      "minimum": 0,
+      "maximum": 10,
+      "example": 5
+    },
+    "propertyTypes": {
+      "title": "Property Types",
+      "type": "array",
+      "description": "Filter by property types",
+      "editor": "select",
+      "items": {
+        "type": "string",
+        "enum": [
+          "detached",
+          "semi-detached",
+          "terraced",
+          "flat",
+          "bungalow",
+          "land",
+          "park-home"
+        ]
+      },
+      "uniqueItems": true
+    },
+    "includeSSTC": {
+      "title": "Include SSTC Properties",
+      "type": "boolean",
+      "description": "Include properties marked as 'Sold Subject To Contract'",
+      "editor": "checkbox",
+      "default": true
+    },
+    "collectDetails": {
+      "title": "Collect Full Property Details",
+      "type": "boolean",
+      "description": "Visit each property page to extract complete information including full description, all images, floorplans, and agent details. Increases runtime but provides comprehensive data.",
+      "editor": "checkbox",
+      "default": true
+    },
+    "maxResults": {
+      "title": "Maximum Properties",
+      "type": "integer",
+      "description": "Maximum number of properties to collect (1-1000)",
+      "minimum": 1,
+      "maximum": 1000,
+      "default": 50,
+      "editor": "number"
+    },
+    "maxPages": {
+      "title": "Maximum Pages",
+      "type": "integer",
+      "description": "Maximum number of result pages to process (each page contains ~24 properties)",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 5,
+      "editor": "number"
+    },
+    "proxyConfiguration": {
+      "title": "Proxy Configuration",
+      "type": "object",
+      "description": "Proxy settings for requests. Residential proxies recommended to avoid blocking.",
+      "editor": "proxy",
+      "default": {
+        "useApifyProxy": true
+      }
+    }
+  },
+  "required": []
+}
