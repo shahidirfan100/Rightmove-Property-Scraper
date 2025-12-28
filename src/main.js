@@ -2,6 +2,15 @@ import { Actor, log } from "apify";
 import { CheerioCrawler, Dataset } from "crawlee";
 import { load as cheerioLoad } from "cheerio";
 
+// Surface any startup errors before Actor.init can run
+process.on("unhandledRejection", (reason) => {
+    console.error("UNHANDLED REJECTION", reason);
+});
+
+process.on("uncaughtException", (err) => {
+    console.error("UNCAUGHT EXCEPTION", err);
+});
+
 // ============================================================================
 // CONSTANTS & CONFIGURATION
 // ============================================================================
@@ -443,6 +452,7 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
 
 (async () => {
     try {
+        console.log('BOOT: starting Rightmove actor');
         log.info('========================================');
         log.info('Initializing Rightmove Property Scraper');
         log.info('========================================');
