@@ -1,5 +1,5 @@
 # Use official Apify SDK base image for JavaScript actors
-FROM apify/actor-node:20
+FROM apify/actor-node:22
 
 RUN apk add --no-cache nodejs npm
 
