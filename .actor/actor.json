@@ -9,11 +9,12 @@
   "input": "./input_schema.json",
   "output": "./output_schema.json",
   "nodeJsVersion": "22",
+  "usesLimitedPermissions": true,
   "storages": {
     "dataset": "./dataset_schema.json"
   },
   "categories": ["REAL_ESTATE"],
   "meta": {
-    "generatedBy": "GPT-5"
+    "generatedBy": "Claude Sonnet 4.5"
   }
 }

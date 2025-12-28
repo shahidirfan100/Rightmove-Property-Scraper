@@ -441,13 +441,14 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
 // MAIN ACTOR
 // ============================================================================
 
-await Actor.init();
+(async () => {
+    await Actor.init();
 
-try {
-    const input = (await Actor.getInput()) || {};
-    const {
-        searchLocation = null,
-        locationIdentifier = null,
+    try {
+        const input = (await Actor.getInput()) || {};
+        const {
+            searchLocation = null,
+            locationIdentifier = null,
         radius = "0.0",
         minPrice = null,
         maxPrice = null,
@@ -657,3 +658,4 @@ try {
 } finally {
     await Actor.exit();
 }
+})();
