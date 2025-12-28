@@ -108,8 +108,6 @@
       "type": "object",
       "description": "Proxy settings for requests. Residential proxies recommended to avoid blocking.",
       "editor": "proxy",
-      "resourceType": "proxy-configuration",
-      "resourcePermissions": ["USE"],
       "default": {
         "useApifyProxy": true
       },
