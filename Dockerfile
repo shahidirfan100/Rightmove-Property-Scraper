@@ -1,22 +1,17 @@
 # Use official Apify SDK base image for JavaScript actors
 FROM apify/actor-node:20
 
-# Copy package files
-COPY package*.json ./
+RUN apk add --no-cache nodejs npm
 
-# Install dependencies
-RUN npm --quiet set progress=false \
-    && npm install --omit=dev --omit=optional \
-    && echo "Installed NPM packages:" \
-    && (npm list --omit=dev --all || true) \
-    && echo "Node.js version:" \
-    && node --version \
-    && echo "NPM version:" \
-    && npm --version \
-    && rm -r ~/.npm || true
+RUN addgroup app && adduser app -G app -D
+WORKDIR /home/app
+USER app
 
-# Copy source code
-COPY . ./
+COPY --chown=app:app package*.json ./
+RUN npm i --omit=dev && rm -r ~/.npm || true
 
-# Run the actor
+COPY --chown=app:app . ./
+
+ENV APIFY_LOG_LEVEL=INFO
+
 CMD npm start --silent

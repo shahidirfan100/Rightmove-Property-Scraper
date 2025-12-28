@@ -442,23 +442,23 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
 // ============================================================================
 
 (async () => {
-    await Actor.init();
-
     try {
+        await Actor.init();
+
         const input = (await Actor.getInput()) || {};
         const {
             searchLocation = null,
             locationIdentifier = null,
-        radius = "0.0",
-        minPrice = null,
-        maxPrice = null,
-        collectDetails = true,
-        maxResults = 100,
-        maxPages = 5,
-        startUrl = null,
-    } = input;
+            radius = "0.0",
+            minPrice = null,
+            maxPrice = null,
+            collectDetails = true,
+            maxResults = 100,
+            maxPages = 5,
+            startUrl = null,
+        } = input;
 
-    const searchUrl = buildSearchUrl({ startUrl, searchLocation, locationIdentifier, radius, minPrice, maxPrice });
+        const searchUrl = buildSearchUrl({ startUrl, searchLocation, locationIdentifier, radius, minPrice, maxPrice });
 
     log.info("✓ Starting Rightmove Property Scraper");
     if (startUrl) {
@@ -640,22 +640,27 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
     log.info("✓ Completed!");
     log.info(`  Properties Scraped: ${propertiesScraped}, Queued: ${propertiesQueued}, Unique: ${propertyUrls.size}, Pages: ${currentPage}`);
 
-    await Actor.setValue("OUTPUT", {
-        status: "success",
-        propertiesScraped,
-        uniqueProperties: propertyUrls.size,
-        pagesProcessed: currentPage,
-        completedAt: new Date().toISOString(),
-    });
-} catch (error) {
-    log.error(`Error: ${error.message}`, error);
-    await Actor.setValue("OUTPUT", {
-        status: "error",
-        error: error.message,
-        failedAt: new Date().toISOString(),
-    });
-    throw error;
-} finally {
-    await Actor.exit();
-}
-})();
+        await Actor.setValue("OUTPUT", {
+            status: "success",
+            propertiesScraped,
+            uniqueProperties: propertyUrls.size,
+            pagesProcessed: currentPage,
+            completedAt: new Date().toISOString(),
+        });
+    } catch (error) {
+        log.error(`Actor failed: ${error.message}`);
+        log.exception(error, 'Actor execution error');
+        await Actor.setValue("OUTPUT", {
+            status: "error",
+            error: error.message,
+            stack: error.stack,
+            failedAt: new Date().toISOString(),
+        });
+        process.exitCode = 1;
+    } finally {
+        await Actor.exit();
+    }
+})().catch((error) => {
+    console.error('Fatal error:', error);
+    process.exit(1);
+});
