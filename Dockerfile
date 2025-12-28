@@ -1,5 +1,4 @@
-# Use official Apify SDK base image for JavaScript actors
-FROM apify/actor-node:22
+FROM alpine:latest
 
 RUN apk add --no-cache nodejs npm
 
