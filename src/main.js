@@ -443,9 +443,16 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
 
 (async () => {
     try {
+        log.info('========================================');
+        log.info('Initializing Rightmove Property Scraper');
+        log.info('========================================');
+        
         await Actor.init();
+        log.info('✓ Actor initialized successfully');
 
         const input = (await Actor.getInput()) || {};
+        log.info('✓ Input received:', JSON.stringify(input, null, 2));
+        
         const {
             searchLocation = null,
             locationIdentifier = null,
@@ -458,7 +465,16 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
             startUrl = null,
         } = input;
 
+        log.info('✓ Input parameters extracted');
+        log.debug(`  searchLocation: ${searchLocation}`);
+        log.debug(`  locationIdentifier: ${locationIdentifier}`);
+        log.debug(`  radius: ${radius}`);
+        log.debug(`  maxResults: ${maxResults}`);
+        log.debug(`  maxPages: ${maxPages}`);
+        log.debug(`  collectDetails: ${collectDetails}`);
+
         const searchUrl = buildSearchUrl({ startUrl, searchLocation, locationIdentifier, radius, minPrice, maxPrice });
+        log.info('✓ Search URL built successfully');
 
     log.info("✓ Starting Rightmove Property Scraper");
     if (startUrl) {
@@ -479,10 +495,13 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
     const propertyDataBatch = [];
     let currentPage = 1;
 
+    log.info('✓ Initializing proxy configuration...');
     const proxyConfig = input.proxyConfiguration
         ? await Actor.createProxyConfiguration(input.proxyConfiguration)
         : await Actor.createProxyConfiguration();
+    log.info('✓ Proxy configuration created successfully');
 
+    log.info('✓ Creating CheerioCrawler...');
     const crawler = new CheerioCrawler({
         proxyConfiguration: proxyConfig,
         requestHandlerTimeoutSecs: TIMEOUT_SECONDS,
@@ -619,26 +638,33 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
             }
         },
 
-        errorHandler: async ({ request }) => {
-            log.warning(`Failed: ${request.url} (retries: ${request.retryCount}/${MAX_RETRIES})`);
-        },
-    });
+            errorHandler: async ({ request }) => {
+                log.warning(`Failed: ${request.url} (retries: ${request.retryCount}/${MAX_RETRIES})`);
+            },
+        });
+        log.info('✓ CheerioCrawler created successfully');
 
-    await crawler.addRequests([
-        {
-            url: searchUrl,
-            userData: { isPropertyDetail: false, pageNumber: 1 },
-            headers: { ...STEALTHY_HEADERS, "User-Agent": getRandomUserAgent() },
-        },
-    ]);
+        log.info('✓ Adding initial request to queue...');
+        await crawler.addRequests([
+            {
+                url: searchUrl,
+                userData: { isPropertyDetail: false, pageNumber: 1 },
+                headers: { ...STEALTHY_HEADERS, "User-Agent": getRandomUserAgent() },
+            },
+        ]);
+        log.info('✓ Initial request added successfully');
 
-    log.info("Starting crawler...");
-    await crawler.run();
+        log.info("✓ Starting crawler...");
+        await crawler.run();
+        log.info('✓ Crawler finished successfully');
 
-    if (propertyDataBatch.length > 0) await Dataset.pushData(propertyDataBatch);
+        if (propertyDataBatch.length > 0) {
+            log.info(`✓ Pushing final batch of ${propertyDataBatch.length} properties...`);
+            await Dataset.pushData(propertyDataBatch);
+        }
 
-    log.info("✓ Completed!");
-    log.info(`  Properties Scraped: ${propertiesScraped}, Queued: ${propertiesQueued}, Unique: ${propertyUrls.size}, Pages: ${currentPage}`);
+        log.info("✓ Completed!");
+        log.info(`  Properties Scraped: ${propertiesScraped}, Queued: ${propertiesQueued}, Unique: ${propertyUrls.size}, Pages: ${currentPage}`);
 
         await Actor.setValue("OUTPUT", {
             status: "success",
@@ -647,20 +673,39 @@ const extractPropertyDetails = ($, html, basicInfo = {}) => {
             pagesProcessed: currentPage,
             completedAt: new Date().toISOString(),
         });
+        log.info('✓ Actor completed successfully');
+        
     } catch (error) {
-        log.error(`Actor failed: ${error.message}`);
-        log.exception(error, 'Actor execution error');
-        await Actor.setValue("OUTPUT", {
-            status: "error",
-            error: error.message,
-            stack: error.stack,
-            failedAt: new Date().toISOString(),
-        });
+        log.error('========================================');
+        log.error('ACTOR EXECUTION FAILED');
+        log.error('========================================');
+        log.error(`Error Type: ${error.constructor.name}`);
+        log.error(`Error Message: ${error.message}`);
+        log.error(`Error Stack: ${error.stack}`);
+        log.exception(error, 'Full error details');
+        
+        try {
+            await Actor.setValue("OUTPUT", {
+                status: "error",
+                error: error.message,
+                errorType: error.constructor.name,
+                stack: error.stack,
+                failedAt: new Date().toISOString(),
+            });
+        } catch (outputError) {
+            log.error(`Failed to save error output: ${outputError.message}`);
+        }
+        
         process.exitCode = 1;
     } finally {
+        log.info('Exiting actor...');
         await Actor.exit();
     }
 })().catch((error) => {
-    console.error('Fatal error:', error);
+    console.error('========================================');
+    console.error('FATAL UNHANDLED ERROR');
+    console.error('========================================');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
     process.exit(1);
 });
